@@ -1,4 +1,4 @@
 from .receive_idea import receive_idea
-from .mark_planning_ready import mark_planning_ready
+from .make_analyze_requirement import make_analyze_requirement
 
-__all__ = ["receive_idea", "mark_planning_ready"]
+__all__ = ["receive_idea", "make_analyze_requirement"]

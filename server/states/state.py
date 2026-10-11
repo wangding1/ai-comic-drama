@@ -1,5 +1,7 @@
 import operator
-from typing import Annotated, TypedDict
+from typing import Annotated, NotRequired, TypedDict
+from server.schema import CreativeRequirement
+
 
 
 class ComicDramaState(TypedDict):
@@ -11,6 +13,8 @@ class ComicDramaState(TypedDict):
 
     # 用户最初输入的创意。后续需求整理节点会以它为起点。
     raw_requirement: str
+
+    requirement: NotRequired[CreativeRequirement]
 
     # 客户端和 Studio 用来判断走到哪一阶段。节点在业务写盘成功后才更新它。
     # 例：首次输入 "submitted"；分镜待审 "quality_passed"；成片待审 "final_video_ready"；验收通过 "final_video_approved"
