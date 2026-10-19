@@ -1,7 +1,12 @@
 import operator
 from typing import Annotated, NotRequired, TypedDict
-from server.schema import CreativeRequirement
 
+from server.schema import (
+    CharacterProfile,
+    CreativeRequirement,
+    SceneProfile,
+    StoryOutline,
+)
 
 
 class ComicDramaState(TypedDict):
@@ -23,3 +28,7 @@ class ComicDramaState(TypedDict):
     # 各节点只返回本节点新增的字符串。operator.add 追加到历史，避免后写覆盖先写。
     # 例：["已接收用户创意", "已生成结构化创意需求", "已生成故事大纲", "已收到人工审核命令：revise", "已按人工意见生成 v1 分镜"]
     events: Annotated[list[str], operator.add]
+
+    story_outline: NotRequired[StoryOutline]
+    characters: NotRequired[list[CharacterProfile]]
+    scenes: NotRequired[list[SceneProfile]]

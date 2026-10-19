@@ -1,10 +1,29 @@
-
-
 from typing import Protocol
 
-from server.schema import CreativeRequirement
+from server.schema import (
+    CharacterProfile,
+    CreativeRequirement,
+    SceneProfile,
+    StoryOutline,
+)
 
 
+# 先规定“模型应该长什么样”
+# Protocol 的核心作用就是：
+# 告诉 Python 类型系统：TextModel 描述的是一种“结构要求”，
 class TextModel(Protocol):
     def analyze_requirement(self, raw_requirement: str) -> CreativeRequirement:
         """把自然语言创意转换为经过校验的结构化需求。"""
+
+    def generate_story_outline(self, requirement: CreativeRequirement) -> StoryOutline:
+        """先固定故事因果。"""
+
+    def generate_characters(
+        self, requirement: CreativeRequirement, outline: StoryOutline
+    ) -> list[CharacterProfile]:
+        """基于同一大纲生成角色设定。"""
+
+    def generate_scenes(
+        self, requirement: CreativeRequirement, outline: StoryOutline
+    ) -> list[SceneProfile]:
+        """基于同一大纲生成场景设定。"""
