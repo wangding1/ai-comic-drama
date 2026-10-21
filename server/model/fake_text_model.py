@@ -4,6 +4,7 @@ from server.schema import (
     CharacterProfile,
     CreativeRequirement,
     SceneProfile,
+    StoryBoard,
     StoryOutline,
 )
 
@@ -12,10 +13,15 @@ class FakeTextModel:
     """本地开发使用的确定性替身，不发起任何网络请求。"""
 
     def __init__(
-        self, response: dict[str, Any] | None = None, *, planning_fault: str = "none"
+        self,
+        response: dict[str, Any] | None = None,
+        *,
+        planning_fault: str = "none",
+        storyboard_fault: str = "none",
     ) -> None:
         self._response = response
         self._planning_fault = planning_fault
+        self._storyboard_fault = storyboard_fault
 
     def analyze_requirement(self, raw_requirement: str) -> CreativeRequirement:
         response = self._response or {
@@ -85,3 +91,74 @@ class FakeTextModel:
                 visual_keywords=["二维漫画", "暖黄台灯", "深蓝夜景"],
             )
         ]
+
+    def generate_storyboard(
+        self,
+        requirement: CreativeRequirement,
+        outline: StoryOutline,
+        characters: list[CharacterProfile],
+        scenes: list[SceneProfile],
+    ) -> list[StoryBoard]:
+        """确定性分镜样本；数量与总时长必须服从结构化需求。"""
+        moments = [
+            ("小林看到屏幕旁出现阿沐", "小林惊讶地抬头", "阿沐站到桌边"),
+            ("阿沐解释零点前必须回去", "阿沐指向墙上的钟", "小林决定帮忙"),
+            ("两人寻找漫画的最后一页", "两人在桌上翻找", "发现空白纸张"),
+            ("小林画出能让故事继续的画面", "小林握笔停顿", "画纸上出现回家的路"),
+            ("阿沐回到漫画并约定重逢", "阿沐走向发光书页", "书页合上留下约定"),
+        ]
+
+        # 把成片总时长拆成每镜整数秒，保证加起来刚好等于 requirement.duration_seconds
+        # divmod(a, b) 一次算出商和余数
+        base_duration, remainder = divmod(
+            requirement.duration_seconds, requirement.shot_count
+        )
+
+        storyboard = [
+            StoryBoard(
+                shot_id=f"shot_{index:02d}",
+                order=index,
+                # 默认 45 秒 / 5 镜：base_duration=9，remainder=0，每镜都是 9 秒。
+                # 如果是 47 秒 / 5 镜：base_duration=9，remainder=2。后面赋值用了：
+                # duration_seconds=base_duration + (index <= remainder)
+                duration_seconds=base_duration + (index <= remainder),
+                scene_id="scene_office",
+                character_ids=["char_xiaolin", "char_amu"],
+                action=action,
+                composition="竖屏中景，人物与办公桌保持相对位置",
+                dialogue="",
+                camera_motion="缓慢推近",
+                start_frame_prompt=f"暖色二维漫画，深夜办公室，{start}",
+                end_frame_prompt=f"暖色二维漫画，深夜办公室，{end}",
+                video_prompt=(
+                    f"{base_duration + (index <= remainder)} 秒镜头："
+                    f"{action}；镜头缓慢推近。"
+                ),
+            )
+            for index, (action, start, end) in enumerate(moments, start=1)
+        ]
+
+        # 根据环境变量的设置，故意破坏
+        if self._storyboard_fault == "duplicate_id":
+            # 第 2 镜的 shot_id 改成和第 1 镜一样
+            # 校验会触发：shot_id 重复
+            storyboard[1] = storyboard[1].model_copy(
+                update={"shot_id": storyboard[0].shot_id}
+            )
+        elif self._storyboard_fault == "unknown_character":
+            # 第 3 镜角色改成 char_missing
+            # 校验的时候应该触发：引用了不存在的角色
+            storyboard[2] = storyboard[2].model_copy(
+                update={"character_ids": ["char_missing"]}
+            )
+        elif self._storyboard_fault == "duration_mismatch":
+            # 第 4 镜（不够 4 镜就改最后一镜）时长 +3
+            # 校验的时候会触发：总时长对不上 duration_seconds
+            fault_index = min(3, len(storyboard) - 1)
+            storyboard[fault_index] = storyboard[fault_index].model_copy(
+                update={
+                    "duration_seconds": storyboard[fault_index].duration_seconds + 3
+                }
+            )
+
+        return storyboard

@@ -1,35 +1,29 @@
 from langgraph.graph import END, START, StateGraph
 
 from server.model import TextModel, build_text_model
-from server.nodes import (
-    finish_planning,
-    make_analyze_requirement,
-    make_generate_characters,
-    make_generate_scenes,
-    make_generate_story_outline,
-    receive_idea,
-)
 from server.states import ComicDramaState
+from server.workflows.story_planning import build_story_planning_graph
 
 
 def build_graph(text_model: TextModel):
-    builder = StateGraph(ComicDramaState)
-    builder.add_node("receive_idea", receive_idea)
-    builder.add_node("analyze_requirement", make_analyze_requirement(text_model))
-    builder.add_node("generate_characters", make_generate_characters(text_model))
-    builder.add_node("generate_scenes", make_generate_scenes(text_model))
-    builder.add_node("finish_planning", finish_planning)
-    builder.add_node("generate_story_outline", make_generate_story_outline(text_model))
+    planning_graph = build_story_planning_graph(text_model)
 
-    builder.add_edge(START, "receive_idea")
-    builder.add_edge("receive_idea", "analyze_requirement")
-    builder.add_edge("analyze_requirement", "generate_story_outline")
-    builder.add_edge("analyze_requirement", "generate_story_outline")
-    builder.add_edge("generate_story_outline", "generate_characters")
-    builder.add_edge("generate_story_outline", "generate_scenes")
-    builder.add_edge("generate_characters", "finish_planning")
-    builder.add_edge("generate_scenes", "finish_planning")
-    builder.add_edge("finish_planning", END)
+    def story_planning(state: ComicDramaState) -> dict[str, object]:
+        child_result = planning_graph.invoke(state)
+        # 子图返回完整事件历史；父图 reducer 只追加本轮新事件。
+        return {
+            **child_result,
+            "events": child_result["events"][len(state["events"]) :],
+        }
+
+    builder = StateGraph(ComicDramaState)
+
+    # 添加节点
+    builder.add_node("story_planning", story_planning)
+
+    # 连边
+    builder.add_edge(START, "story_planning")
+    builder.add_edge("story_planning", END)
 
     return builder.compile()
 

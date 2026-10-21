@@ -5,6 +5,8 @@ from server.schema import (
     CharacterProfile,
     CreativeRequirement,
     SceneProfile,
+    StoryBoard,
+    StoryboardValidation,
     StoryOutline,
 )
 
@@ -32,3 +34,6 @@ class ComicDramaState(TypedDict):
     story_outline: NotRequired[StoryOutline]
     characters: NotRequired[list[CharacterProfile]]
     scenes: NotRequired[list[SceneProfile]]
+
+    storyboard: NotRequired[list[StoryBoard]]
+    storyboard_validation: NotRequired[StoryboardValidation]

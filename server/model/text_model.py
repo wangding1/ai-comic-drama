@@ -4,6 +4,7 @@ from server.schema import (
     CharacterProfile,
     CreativeRequirement,
     SceneProfile,
+    StoryBoard,
     StoryOutline,
 )
 
@@ -27,3 +28,12 @@ class TextModel(Protocol):
         self, requirement: CreativeRequirement, outline: StoryOutline
     ) -> list[SceneProfile]:
         """基于同一大纲生成场景设定。"""
+    
+    def generate_storyboard(
+        self,
+        requirement: CreativeRequirement,
+        outline: StoryOutline,
+        characters: list[CharacterProfile],
+        scenes: list[SceneProfile],
+    ) -> list[StoryBoard]:
+        """只引用已登记角色与场景，返回整版分镜。"""

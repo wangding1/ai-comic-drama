@@ -3,15 +3,23 @@ from typing import Any
 
 from arkruntime import Ark
 
-from server.prompts import CHARACTER_PROMPT, SCENE_PROMPT, STORY_PROMPT, SYSTEM_PROMPT
+from server.prompts import (
+    CHARACTER_PROMPT,
+    SCENE_PROMPT,
+    STORY_PROMPT,
+    STORYBOARD_PROMPT,
+    SYSTEM_PROMPT,
+)
 from server.schema import (
     CharacterList,
     CharacterProfile,
     CreativeRequirement,
     SceneList,
     SceneProfile,
+    StoryBoard,
     StoryOutline,
 )
+from server.schema.storyboard_list import StoryBoardList
 
 
 class ArkTextModel:
@@ -75,3 +83,27 @@ class ArkTextModel:
             schema=SceneList,
         )
         return result.scenes
+
+    def generate_storyboard(
+        self,
+        requirement: CreativeRequirement,
+        outline: StoryOutline,
+        characters: list[CharacterProfile],
+        scenes: list[SceneProfile],
+    ) -> list[StoryBoard]:
+        """只引用已登记角色与场景，返回整版分镜。"""
+        result = self._parse(
+            system=STORYBOARD_PROMPT,
+            payload={
+                "requirement": requirement.model_dump(mode="json"),
+                "story_outline": outline.model_dump(mode="json"),
+                "characters": [item.model_dump(mode="json") for item in characters],
+                "scenes": [item.model_dump(mode="json") for item in scenes],
+                "target_shot_count": requirement.shot_count,
+                "target_duration_seconds": requirement.duration_seconds,
+                "allowed_character_ids": [item.character_id for item in characters],
+                "allowed_scene_ids": [item.scene_id for item in scenes],
+            },
+            schema=StoryBoardList,
+        )
+        return result.storyboard_list
